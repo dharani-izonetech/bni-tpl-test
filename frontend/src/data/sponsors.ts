@@ -885,28 +885,62 @@ export const sponsors: Sponsor[] = [
       "Retail & Bulk Orders",
       "Project Delivery Support",
     ],
+    // offers: [
+    //   {
+    //     label: "Dalmia Infra Pro Cement",
+    //     value: "53 Grade PPC Cement",
+    //   },
+    //   {
+    //     label: "Dalmia Future Today Cement",
+    //     value: "53 Grade OPC Cement",
+    //   },
+    //   {
+    //     label: "UltraTech Cement",
+    //     value: "43 Grade Ordinary Portland Cement",
+    //   },
+    //   {
+    //     label: "JSW Neosteel TMT Bars",
+    //     value: "Fe 550D 6mm Reinforcement Bars",
+    //   },
+    //   {
+    //     label: "Pulkit TMT Bars",
+    //     value: "8mm Construction Reinforcement Bars",
+    //   },
+    // ],
     offers: [
-      {
-        label: "Dalmia Infra Pro Cement",
-        value: "53 Grade PPC Cement",
-      },
-      {
-        label: "Dalmia Future Today Cement",
-        value: "53 Grade OPC Cement",
-      },
-      {
-        label: "UltraTech Cement",
-        value: "43 Grade Ordinary Portland Cement",
-      },
-      {
-        label: "JSW Neosteel TMT Bars",
-        value: "Fe 550D 6mm Reinforcement Bars",
-      },
-      {
-        label: "Pulkit TMT Bars",
-        value: "8mm Construction Reinforcement Bars",
-      },
-    ],
+    {
+      label: "Tata Tiscon",
+      value: "Fe 550D TMT Bars",
+    },
+    {
+      label: "JSW Neosteel",
+      value: "High Strength TMT Bars",
+    },
+    {
+      label: "ARS",
+      value: "Construction Reinforcement Bars",
+    },
+    {
+      label: "Pulkit",
+      value: "Construction Reinforcement Bars",
+    },
+    {
+      label: "Sumangala",
+      value: "Premium TMT Bars",
+    },
+    {
+      label: "Kaaveri",
+      value: "TMT Reinforcement Bars",
+    },
+    {
+      label: "Durga",
+      value: "TMT Reinforcement Bars",
+    },
+    {
+      label: "UltraTech Cement",
+      value: "Ordinary Portland Cement",
+    },
+  ],
     whyChoose: [
       "Supplies trusted construction brands",
       "GST Registered Business",

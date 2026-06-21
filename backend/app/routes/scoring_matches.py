@@ -1,7 +1,7 @@
 import uuid
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
+from sqlalchemy import select, func, delete
 from sqlalchemy.orm import selectinload
 from typing import Optional, List
 from datetime import datetime, timezone
@@ -240,6 +240,76 @@ async def start_innings(
         await db.commit()
         await db.refresh(innings)
         return _innings_to_dict(innings)
+
+
+# ── Reset match (for testing / admin) ────────────────────────────────────────
+# Allowed reset targets:
+#   "toss"     → delete all innings/balls/scores, keep toss info, set status=toss
+#   "upcoming" → delete all innings/balls/scores + clear toss, set status=UPCOMING
+#   "playing_xi" → delete playing XI only (keep toss & status)
+
+@router.post("/{match_id}/reset", response_model=MessageResponse)
+async def reset_match(
+    match_id: uuid.UUID,
+    to: str = "toss",
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Dev/admin helper — resets a match back to a previous state.
+    Query param `to` controls how far back:
+      - toss     : wipes innings data, keeps toss result, status → toss
+      - upcoming : wipes innings data + toss, status → UPCOMING
+    """
+    from app.models import Ball, FallOfWicket, Partnership, BattingScore, BowlingFigure, LiveScore
+
+    if to not in ("toss", "upcoming"):
+        raise HTTPException(400, "Invalid reset target. Use 'toss' or 'upcoming'.")
+
+    result = await db.execute(select(Match).where(Match.id == match_id))
+    match = result.scalar_one_or_none()
+    if not match:
+        raise HTTPException(404, "Match not found")
+
+    # 1. Delete all innings and cascaded data (balls, batting scores, bowling figures, fow, partnerships)
+    innings_result = await db.execute(select(Innings).where(Innings.match_id == match_id))
+    for inn in innings_result.scalars().all():
+        await db.delete(inn)  # cascade deletes balls, scores, etc.
+
+    # 2. Delete playing XI
+    xi_result = await db.execute(select(PlayingXI).where(PlayingXI.match_id == match_id))
+    for xi in xi_result.scalars().all():
+        await db.delete(xi)
+
+    # 3. Delete LiveScore if present
+    try:
+        from app.models import LiveScore
+        ls_result = await db.execute(select(LiveScore).where(LiveScore.match_id == match_id))
+        ls = ls_result.scalar_one_or_none()
+        if ls:
+            await db.delete(ls)
+    except Exception:
+        pass
+
+    # 4. Reset match fields
+    match.started_at = None
+    match.completed_at = None
+    match.winner_id = None
+    match.win_margin = None
+    match.win_by = None
+    match.result = None
+    match.result_summary = None
+    match.current_innings = 1
+
+    if to == "upcoming":
+        match.toss_winner_id = None
+        match.toss_decision = None
+        match.status = MatchStatus.upcoming
+    else:  # toss — keep toss result
+        match.status = MatchStatus.toss
+
+    await db.commit()
+    return MessageResponse(message=f"Match reset to '{to}' state successfully.")
 
 
 @router.get("/{match_id}/scorecard")

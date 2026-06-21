@@ -146,6 +146,9 @@ export const matchesApi = {
 
   getScorecard: (id: string | number) =>
     apiClient.get<any[]>(`/scoring/matches/${id}/scorecard`).then(r => r.data),
+
+  reset: (id: string | number, to: 'toss' | 'upcoming' = 'toss') =>
+    apiClient.post<any>(`/scoring/matches/${id}/reset`, null, { params: { to } }).then(r => r.data),
 }
 
 // ─── Scoring ──────────────────────────────────────────────────────────────────

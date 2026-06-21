@@ -140,7 +140,14 @@ export default function Super12ManagementPage() {
                       className="text-xs bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded"
                     >Result</button>
                     <button
-                      onClick={() => { setSelectedMatch({ ...m, mode: "schedule" }); setSchedForm({}); }}
+                      onClick={() => { setSelectedMatch({ ...m, mode: "schedule" }); setSchedForm({
+                        match_date: m.match_date ?? "",
+                        start_time: m.start_time ? m.start_time.slice(0,5) : "",
+                        end_time:   m.end_time   ? m.end_time.slice(0,5)   : "",
+                        ground:     m.ground     ?? "",
+                        match_type: m.match_type ?? "",
+                        reason:     "",
+                      }); }}
                       className="text-xs bg-purple-600 hover:bg-purple-700 text-white px-2 py-1 rounded"
                     >Schedule</button>
                   </div>
@@ -191,33 +198,55 @@ export default function Super12ManagementPage() {
       {selectedMatch?.mode === "schedule" && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
           <div className="bg-gray-800 rounded-xl p-6 w-full max-w-md space-y-4">
-            <h3 className="text-lg font-bold text-white">Update Schedule</h3>
-            {[["match_date","Date (YYYY-MM-DD)"],["start_time","Start Time (HH:MM)"],
-              ["end_time","End Time (HH:MM)"],["ground","Ground"]].map(([k, label]) => (
-              <div key={k}>
-                <label className="text-xs text-gray-400">{label}</label>
-                <input className="w-full bg-gray-700 text-white rounded px-3 py-2 mt-1"
-                  value={schedForm[k] || ""} onChange={e => setSchedForm((p: any) => ({ ...p, [k]: e.target.value }))} />
+            <h3 className="text-lg font-bold text-white">📅 Update Schedule</h3>
+            <p className="text-xs text-gray-400">
+              {tShort(selectedMatch.team1_id)} vs {tShort(selectedMatch.team2_id)}
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs text-gray-400 block mb-1">Date</label>
+                <input type="date" className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 border border-gray-600 focus:outline-none focus:border-amber-500"
+                  value={schedForm.match_date || ""}
+                  onChange={e => setSchedForm((p: any) => ({ ...p, match_date: e.target.value }))} />
               </div>
-            ))}
+              <div>
+                <label className="text-xs text-gray-400 block mb-1">Start Time</label>
+                <input type="time" className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 border border-gray-600 focus:outline-none focus:border-amber-500"
+                  value={schedForm.start_time || ""}
+                  onChange={e => setSchedForm((p: any) => ({ ...p, start_time: e.target.value }))} />
+              </div>
+              <div>
+                <label className="text-xs text-gray-400 block mb-1">End Time</label>
+                <input type="time" className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 border border-gray-600 focus:outline-none focus:border-amber-500"
+                  value={schedForm.end_time || ""}
+                  onChange={e => setSchedForm((p: any) => ({ ...p, end_time: e.target.value }))} />
+              </div>
+              <div>
+                <label className="text-xs text-gray-400 block mb-1">Ground / Venue</label>
+                <input type="text" className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 border border-gray-600 focus:outline-none focus:border-amber-500"
+                  value={schedForm.ground || ""}
+                  onChange={e => setSchedForm((p: any) => ({ ...p, ground: e.target.value }))} />
+              </div>
+            </div>
             <div>
-              <label className="text-xs text-gray-400">Match Type</label>
-              <select className="w-full bg-gray-700 text-white rounded px-3 py-2 mt-1"
+              <label className="text-xs text-gray-400 block mb-1">Match Type</label>
+              <select className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 border border-gray-600 focus:outline-none focus:border-amber-500"
                 value={schedForm.match_type || ""}
                 onChange={e => setSchedForm((p: any) => ({ ...p, match_type: e.target.value }))}>
-                <option value="">Select</option>
-                <option value="day">Day (Red Ball)</option>
-                <option value="floodlight">Floodlight (White Ball)</option>
+                <option value="">— Select —</option>
+                <option value="day">☀️ Day (Red Ball)</option>
+                <option value="floodlight">🌙 Floodlight (White Ball)</option>
               </select>
             </div>
             <div>
-              <label className="text-xs text-gray-400">Reason</label>
-              <input className="w-full bg-gray-700 text-white rounded px-3 py-2 mt-1"
+              <label className="text-xs text-gray-400 block mb-1">Reason (optional)</label>
+              <input type="text" className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 border border-gray-600 focus:outline-none focus:border-amber-500"
+                placeholder="e.g. Rescheduled due to rain"
                 value={schedForm.reason || ""} onChange={e => setSchedForm((p: any) => ({ ...p, reason: e.target.value }))} />
             </div>
-            <div className="flex gap-3">
-              <button onClick={saveSchedule} className="flex-1 bg-purple-600 text-white rounded py-2 font-semibold">Save</button>
-              <button onClick={() => setSelectedMatch(null)} className="flex-1 bg-gray-600 text-white rounded py-2">Cancel</button>
+            <div className="flex gap-3 pt-1">
+              <button onClick={saveSchedule} className="flex-1 bg-purple-600 hover:bg-purple-700 text-white rounded-lg py-2.5 font-semibold text-sm">💾 Save</button>
+              <button onClick={() => setSelectedMatch(null)} className="flex-1 bg-gray-600 hover:bg-gray-500 text-white rounded-lg py-2.5 text-sm">Cancel</button>
             </div>
           </div>
         </div>

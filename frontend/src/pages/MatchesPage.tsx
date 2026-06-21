@@ -1,37 +1,8 @@
-﻿
-/**
- * Matches Page — shows every stage of the tournament in one place:
- *   1. League Stage I   (30 matches, from the spinner schedule-snapshot)
- *   2. Super 12         (Group Stage II, from /tournament-stages/bracket)
- *   3. Quarter Finals
- *   4. Semi Finals
- *   5. Final
- *
- * League Stage I team names come from the schedule snapshot (unchanged from
- * before). Everything from Super 12 onward comes from the bracket endpoint,
- * which only returns team IDs, so we resolve names via a /teams lookup map —
- * same pattern already used in GroupsSection.tsx.
- *
- * IMPORTANT: Super 12 / QF / SF / Final sections only render once the
- * backend has actually generated/scheduled those matches. We never
- * fabricate placeholder "TBD vs TBD" cards — if a stage isn't scheduled
- * yet, its whole section is simply omitted from the page.
- */
-import { useEffect, useState } from 'react'
+﻿import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { loadMatchScheduleSnapshotAsync, type MatchScheduleSnapshot } from '@/lib/matchScheduleStorage'
 import { apiClient } from '@/api/client'
 import { tournamentStagesApi } from '@/api/tournamentStages'
 import SEO from '@/components/SEO'
-
-const ALL_SLOTS = 'ABCDEFGHIJKLMNOPQRST'.split('')
-const GROUPS: Record<number, string[]> = {
-  1: ['A', 'B', 'C', 'D'],
-  2: ['E', 'F', 'G', 'H'],
-  3: ['I', 'J', 'K', 'L'],
-  4: ['M', 'N', 'O', 'P'],
-  5: ['Q', 'R', 'S', 'T'],
-}
 
 // Cosmetic display letters for the Super 12 groups, continuing on from the
 // 5 league-stage groups (A–E). This matches the convention already used on
@@ -40,12 +11,6 @@ const GROUPS: Record<number, string[]> = {
 const SUPER12_DISPLAY_LETTERS = ['F', 'G', 'H', 'I']
 
 // ─── Types ───────────────────────────────────────────────────────────────
-interface TeamRef {
-  id: string
-  name: string
-  short?: string
-}
-
 interface StageMatch {
   id: string
   match_number?: number
@@ -54,6 +19,18 @@ interface StageMatch {
   winner_id?: string | null
   status?: string
   created_at?: string
+  // Real fields returned by the backend (Super12MatchOut / QFMatchOut /
+  // SFMatchOut / FinalMatchOut): a plain date string ("2026-07-05") and a
+  // plain time string ("19:00:00"), kept separate rather than combined
+  // into one ISO datetime.
+  match_date?: string | null
+  start_time?: string | null
+}
+
+interface TeamRef {
+  id: string
+  name: string
+  short?: string
 }
 
 interface Super12GroupBlock {
@@ -69,26 +46,19 @@ interface BracketData {
   final: StageMatch | null
 }
 
-// ─── Helpers ────────────────────────────────────────────────────────────
-function generateLeagueMatches(snap: MatchScheduleSnapshot | null) {
-  const matches: { matchNumber: number; group: number; team1: string; team2: string }[] = []
-  let matchNum = 1
-  for (let g = 1; g <= 5; g++) {
-    const groupSlots = GROUPS[g]
-    for (let i = 0; i < groupSlots.length; i++) {
-      for (let j = i + 1; j < groupSlots.length; j++) {
-        const idx1 = ALL_SLOTS.indexOf(groupSlots[i])
-        const idx2 = ALL_SLOTS.indexOf(groupSlots[j])
-        const team1 = snap?.slotToTeamName?.[idx1]?.trim() || `Team ${groupSlots[i]}`
-        const team2 = snap?.slotToTeamName?.[idx2]?.trim() || `Team ${groupSlots[j]}`
-        matches.push({ matchNumber: matchNum, group: g, team1, team2 })
-        matchNum++
-      }
-    }
-  }
-  return matches
+// League Stage I rows from GET /matches: a single ISO datetime field
+// (MatchOut.match_date), with team1/team2 embedded as full objects.
+interface LeagueMatchOut {
+  id: string
+  match_number?: number | null
+  slot?: number | null
+  team1?: { id: string; name?: string } | null
+  team2?: { id: string; name?: string } | null
+  match_date?: string | null
+  match_type?: string | null
 }
 
+// ─── Helpers ────────────────────────────────────────────────────────────
 function unwrapList<T>(axiosData: unknown): T[] {
   if (axiosData == null) return []
   const d = axiosData as any
@@ -110,62 +80,118 @@ function isScheduled(m?: StageMatch | null): m is StageMatch {
   return !!m && !!m.team1_id && !!m.team2_id
 }
 
-// ── Schedule join helpers ───────────────────────────────────────────────────
-// The seeded date/time lives in the `matches` table (GET /matches). The league
-// cards here only know team *names*, and their match numbers are generated in
-// group order (not the fixture-sheet order), so we join on the unordered team
-// pair rather than the number. Names are normalised (lowercased, "BNI " prefix
-// stripped) so "BNI Royals" and "Royals" match.
-function normTeam(name?: string | null): string {
-  return (name ?? '').trim().toLowerCase().replace(/^bni\s+/, '')
-}
-function pairKey(a?: string | null, b?: string | null): string {
-  return [normTeam(a), normTeam(b)].sort().join(' :: ')
-}
-function formatIST(iso?: string | null): string | null {
-  if (!iso) return null
+// Splits an ISO datetime string (e.g. "2026-06-25T09:00:00+05:30") into the
+// plain "YYYY-MM-DD" / "HH:MM:SS" shape the rest of this page already knows
+// how to format (formatMatchDate / formatMatchTime below), rendered in IST
+// so the date/time shown always matches the tournament's local time
+// regardless of the viewer's own timezone.
+function splitIsoDateTime(iso?: string | null): { date: string | null; time: string | null } {
+  if (!iso) return { date: null, time: null }
   const d = new Date(iso)
-  if (isNaN(d.getTime())) return null
-  return d.toLocaleString('en-IN', {
+  if (isNaN(d.getTime())) return { date: null, time: null }
+  const parts = new Intl.DateTimeFormat('en-CA', {
     timeZone: 'Asia/Kolkata',
-    day: '2-digit', month: 'short',
-    hour: 'numeric', minute: '2-digit', hour12: true,
-  })
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false,
+  }).formatToParts(d)
+  const get = (type: string) => parts.find((p) => p.type === type)?.value ?? ''
+  const date = `${get('year')}-${get('month')}-${get('day')}`
+  const time = `${get('hour')}:${get('minute')}:${get('second')}`
+  return { date, time }
 }
 
-// ─── Shared match-card UI (same gold pill style as League Stage I) ────────
+// Formats the backend's plain "YYYY-MM-DD" into "Jun 18, 2026". Returns
+// null if there's no date — callers skip rendering the whole stub row.
+// Parsed as local date components (not via raw `new Date(isoString)`) so a
+// UTC-vs-local shift can never silently move the date back a day.
+function formatMatchDate(matchDate?: string | null): string | null {
+  if (!matchDate) return null
+  const [y, m, d] = matchDate.split('-').map(Number)
+  if (!y || !m || !d) return null
+  const dateObj = new Date(y, m - 1, d)
+  if (isNaN(dateObj.getTime())) return null
+  return dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+}
+
+// Formats the backend's plain "HH:MM:SS" (24h) into "5:00 AM". Returns null
+// if there's no time — the stub row then shows the date alone, full width.
+function formatMatchTime(matchDate?: string | null, startTime?: string | null): string | null {
+  if (!matchDate || !startTime) return null
+  const [y, m, d] = matchDate.split('-').map(Number)
+  const [hh, mm] = startTime.split(':').map(Number)
+  if (!y || !m || !d || Number.isNaN(hh) || Number.isNaN(mm)) return null
+  const timeObj = new Date(y, m - 1, d, hh, mm)
+  if (isNaN(timeObj.getTime())) return null
+  return timeObj.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
+}
+
+// ─── Shared match-card UI — "ticket stub" treatment ────────────────────────
+// Badge sits up top like a gate number. Team matchup is the hero, large and
+// centered. A dashed tear-line separates the matchup from a scoreboard-style
+// footer: date on the left, time on the right, each with a small glyph.
 function MatchCard({
   badge,
   team1,
   team2,
-  dateTime,
+  matchDate,
+  startTime,
 }: {
   badge: string
   team1: string
   team2: string
-  dateTime?: string | null
+  matchDate?: string | null
+  startTime?: string | null
 }) {
+  const datePart = formatMatchDate(matchDate)
+  const timePart = formatMatchTime(matchDate, startTime)
+
   return (
-    <div className="rounded-xl border border-[rgba(166,124,0,0.35)] bg-[linear-gradient(160deg,rgba(240,232,208,0.95)_0%,rgba(240,192,64,0.5)_50%,rgba(166,124,0,0.35)_100%)] p-4 shadow-[0_4px_14px_rgba(28,22,0,0.12)] transition hover:shadow-[0_6px_20px_rgba(166,124,0,0.25)]">
-      <div className="mb-3 flex items-center justify-between gap-2">
-        <span className="rounded bg-[#A67C00] px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider text-white">
+    <div className="rounded-xl border border-[rgba(166,124,0,0.35)] bg-[linear-gradient(160deg,rgba(240,232,208,0.95)_0%,rgba(240,192,64,0.5)_50%,rgba(166,124,0,0.35)_100%)] shadow-[0_4px_14px_rgba(28,22,0,0.12)] transition hover:-translate-y-0.5 hover:shadow-[0_8px_22px_rgba(166,124,0,0.28)]">
+      <div className="p-4 pb-3">
+        <span className="inline-block rounded bg-[#A67C00] px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider text-white">
           {badge}
         </span>
-        {dateTime && (
-          <span className="rounded bg-white/70 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-[#7A5C00]">
-            🕒 {dateTime}
+        <div className="mt-3 flex flex-col items-center gap-1 text-center">
+          <span className="font-heading text-sm font-bold uppercase tracking-wide text-[#1A1200] leading-tight">
+            {team1}
           </span>
-        )}
+          <span className="text-[10px] font-black text-[#A67C00]">VS</span>
+          <span className="font-heading text-sm font-bold uppercase tracking-wide text-[#1A1200] leading-tight">
+            {team2}
+          </span>
+        </div>
       </div>
-      <div className="text-center">
-        <span className="font-heading text-sm font-bold uppercase tracking-wide text-[#1A1200]">
-          {team1}
-        </span>
-        <span className="mx-2 text-xs font-black text-[#A67C00]">VS</span>
-        <span className="font-heading text-sm font-bold uppercase tracking-wide text-[#1A1200]">
-          {team2}
-        </span>
-      </div>
+
+      {(datePart || timePart) && (
+        <>
+          {/* Tear line */}
+          <div className="mx-4 border-t border-dashed border-[rgba(166,124,0,0.5)]" />
+          <div className="flex items-center justify-between gap-2 px-4 py-2.5">
+            <span className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-[#7A5C00]">
+              {datePart && (
+                <>
+                  <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 shrink-0 text-[#A67C00]">
+                    <rect x="3" y="5" width="18" height="16" rx="2" fill="none" stroke="currentColor" strokeWidth="2" />
+                    <path d="M3 9h18M8 3v4M16 3v4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                  </svg>
+                  {datePart}
+                </>
+              )}
+            </span>
+            <span className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-[#7A5C00]">
+              {timePart && (
+                <>
+                  <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 shrink-0 text-[#A67C00]">
+                    <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" strokeWidth="2" />
+                    <path d="M12 7v5l3.5 2" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                  {timePart}
+                </>
+              )}
+            </span>
+          </div>
+        </>
+      )}
     </div>
   )
 }
@@ -183,26 +209,23 @@ function StageHeading({ children }: { children: React.ReactNode }) {
 
 export default function MatchesPage() {
   const navigate = useNavigate()
-  const [snapshot, setSnapshot] = useState<MatchScheduleSnapshot | null>(null)
   const [teamMap, setTeamMap] = useState<Record<string, TeamRef>>({})
   const [bracket, setBracket] = useState<BracketData | null>(null)
-  const [scheduleByPair, setScheduleByPair] = useState<Record<string, string | null>>({})
+  const [leagueMatches, setLeagueMatches] = useState<LeagueMatchOut[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     let cancelled = false
 
     Promise.allSettled([
-      loadMatchScheduleSnapshotAsync(),
       apiClient.get('/teams'),
       tournamentStagesApi.getBracket(),
+      // League Stage I — teams + match_date both come from here. Whatever
+      // date/time the admin saves on the "Manual Date / Time" screen shows
+      // up here automatically, same as Super 12 / QF / SF / Final.
       apiClient.get('/matches', { params: { page_size: 100 } }),
-    ]).then(([snapRes, teamsRes, bracketRes, matchesRes]) => {
+    ]).then(([teamsRes, bracketRes, matchesRes]) => {
       if (cancelled) return
-
-      if (snapRes.status === 'fulfilled' && snapRes.value) {
-        setSnapshot(snapRes.value)
-      }
 
       if (teamsRes.status === 'fulfilled') {
         const list = unwrapList<TeamRef>(teamsRes.value.data)
@@ -214,16 +237,12 @@ export default function MatchesPage() {
         setBracket(b)
       }
 
-      // Seeded league fixtures (teams + match_date) → pair-keyed date lookup
       if (matchesRes.status === 'fulfilled') {
-        const rows = unwrapList<{ team1?: { name?: string }; team2?: { name?: string }; match_date?: string | null }>(matchesRes.value.data)
-        const map: Record<string, string | null> = {}
-        for (const r of rows) {
-          if (r.team1?.name && r.team2?.name) {
-            map[pairKey(r.team1.name, r.team2.name)] = r.match_date ?? null
-          }
-        }
-        setScheduleByPair(map)
+        const rows = unwrapList<LeagueMatchOut>(matchesRes.value.data)
+        const league = rows
+          .filter((r) => !r.match_type || r.match_type === 'league')
+          .sort((a, b) => (a.match_number ?? a.slot ?? 0) - (b.match_number ?? b.slot ?? 0))
+        setLeagueMatches(league)
       }
     }).finally(() => {
       if (!cancelled) setLoading(false)
@@ -235,14 +254,15 @@ export default function MatchesPage() {
   const resolveTeamName = (id?: string | null) =>
     id && teamMap[id] ? teamMap[id].name : 'TBD'
 
-  // Date/time for a card, joined by the unordered team-name pair.
-  const dtFor = (a?: string | null, b?: string | null) =>
-    formatIST(scheduleByPair[pairKey(a, b)])
-
-  // ── League Stage I (unchanged from before) ──────────────────────────────
-  const leagueMatches = generateLeagueMatches(snapshot)
-  const leagueColumns: typeof leagueMatches[] = [[], [], [], [], []]
-  leagueMatches.forEach((m) => { leagueColumns[m.group - 1].push(m) })
+  // ── League Stage I — 5 columns of 6, in match_number order ─────────────
+  // The fixture sheet lays out M1–M6 = Group 1, M7–M12 = Group 2, etc., so
+  // splitting the match_number-sorted list into chunks of 6 reproduces the
+  // same 5-column layout the page has always shown — just with real dates.
+  const leagueColumns: LeagueMatchOut[][] = [[], [], [], [], []]
+  leagueMatches.forEach((m, i) => {
+    const col = Math.floor(i / 6)
+    if (col < 5) leagueColumns[col].push(m)
+  })
 
   // ── Super 12 — numbered match badges continue on from League Stage I ───
   // Only groups that actually have scheduled matches get shown, and within
@@ -296,22 +316,30 @@ export default function MatchesPage() {
         </div>
 
         {/* ── League Stage I ──────────────────────────────────────────── */}
-        <StageHeading>League Stage I</StageHeading>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-          {leagueColumns.map((col, colIdx) => (
-            <div key={colIdx} className="space-y-3">
-              {col.map((match) => (
-                <MatchCard
-                  key={match.matchNumber}
-                  badge={`Match ${match.matchNumber}`}
-                  team1={match.team1}
-                  team2={match.team2}
-                  dateTime={dtFor(match.team1, match.team2)}
-                />
+        {leagueMatches.length > 0 && (
+          <>
+            <StageHeading>League Stage I</StageHeading>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+              {leagueColumns.map((col, colIdx) => (
+                <div key={colIdx} className="space-y-3">
+                  {col.map((match) => {
+                    const sched = splitIsoDateTime(match.match_date)
+                    return (
+                      <MatchCard
+                        key={match.id}
+                        badge={`Match ${match.match_number ?? match.slot ?? ''}`}
+                        team1={resolveTeamName(match.team1?.id)}
+                        team2={resolveTeamName(match.team2?.id)}
+                        matchDate={sched.date}
+                        startTime={sched.time}
+                      />
+                    )
+                  })}
+                </div>
               ))}
             </div>
-          ))}
-        </div>
+          </>
+        )}
 
         {/* ── Super 12 — Group Stage II ───────────────────────────────── */}
         {/* Whole section is omitted until at least one match is scheduled */}
@@ -321,16 +349,14 @@ export default function MatchesPage() {
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-4">
               {super12Display.map((sg) => (
                 <div key={sg.id} className="space-y-3">
-                  {/* <h3 className="text-center text-xs font-bold uppercase tracking-widest text-[#A67C00]">
-                    Group {sg.letter}
-                  </h3> */}
                   {sg.numbered.map(({ match, number }) => (
                     <MatchCard
                       key={match.id}
                       badge={`Match ${number}`}
                       team1={resolveTeamName(match.team1_id)}
                       team2={resolveTeamName(match.team2_id)}
-                      dateTime={dtFor(resolveTeamName(match.team1_id), resolveTeamName(match.team2_id))}
+                      matchDate={match.match_date}
+                      startTime={match.start_time}
                     />
                   ))}
                 </div>
@@ -351,7 +377,8 @@ export default function MatchesPage() {
                   badge={`QF ${m.match_number ?? ''}`}
                   team1={resolveTeamName(m.team1_id)}
                   team2={resolveTeamName(m.team2_id)}
-                  dateTime={dtFor(resolveTeamName(m.team1_id), resolveTeamName(m.team2_id))}
+                  matchDate={m.match_date}
+                  startTime={m.start_time}
                 />
               ))}
             </div>
@@ -370,7 +397,8 @@ export default function MatchesPage() {
                   badge={`SF ${m.match_number ?? ''}`}
                   team1={resolveTeamName(m.team1_id)}
                   team2={resolveTeamName(m.team2_id)}
-                  dateTime={dtFor(resolveTeamName(m.team1_id), resolveTeamName(m.team2_id))}
+                  matchDate={m.match_date}
+                  startTime={m.start_time}
                 />
               ))}
             </div>
@@ -387,7 +415,8 @@ export default function MatchesPage() {
                 badge="Final"
                 team1={resolveTeamName(finalDisplay.team1_id)}
                 team2={resolveTeamName(finalDisplay.team2_id)}
-                dateTime={dtFor(resolveTeamName(finalDisplay.team1_id), resolveTeamName(finalDisplay.team2_id))}
+                matchDate={finalDisplay.match_date}
+                startTime={finalDisplay.start_time}
               />
             </div>
           </>
