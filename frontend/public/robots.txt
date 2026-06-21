@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+
+# Admin/scoring areas not for search engines
+Disallow: /admin/
+Disallow: /scoring-admin/
+Disallow: /scoring/
+Disallow: /player/
+
+Sitemap: https://bnicricket.com/sitemap.xml

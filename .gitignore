@@ -1,0 +1,60 @@
+# ══════════════════════════════════════════════════════════════════════════════
+# BNI Cricket + CricPro — Root .gitignore
+# ══════════════════════════════════════════════════════════════════════════════
+
+# ── OS files ──────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+Desktop.ini
+*.lnk
+
+# ── IDE / Editor ──────────────────────────────────────────────────────────────
+.vscode/
+!.vscode/settings.json
+!.vscode/extensions.json
+.idea/
+*.swp
+*.swo
+*~
+*.bak
+
+# ── Environment / Secrets ─────────────────────────────────────────────────────
+.env
+.env.*
+!.env.example
+!.env.production
+
+# ── Docker ────────────────────────────────────────────────────────────────────
+docker-compose.override.yml
+
+# ── Logs ──────────────────────────────────────────────────────────────────────
+logs/
+*.log
+
+# ── Temp / Cache ──────────────────────────────────────────────────────────────
+tmp/
+.cache/
+
+
+
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual Environments
+venv/
+newvenv/
+backend/newvenv/
+
+# Environment Variables
+.env
+
+# Node
+node_modules/
+
+# Build
+dist/
+build/

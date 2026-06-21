@@ -1,0 +1,637 @@
+@import url("https://fonts.googleapis.com/css2?family=Teko:wght@500;600;700&family=Orbitron:wght@600;700;800&family=Bebas+Neue&family=Oswald:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ================= BASE ================= */
+@layer base {
+  :root {
+    /* ── Gold / Amber palette — brighter than before ── */
+    --primary: #a67c00; /* rich gold — brighter than old #735C00 */
+    --primary-rgb: 166, 124, 0;
+    --primary-light: #f0c040; /* vivid amber gold — brighter than old #D4AF37 */
+    --primary-light-rgb: 240, 192, 64;
+    --secondary: #c8960c; /* warm amber */
+    --secondary-rgb: 200, 150, 12;
+    --accent: #d97706; /* orange-amber accent */
+    --accent-rgb: 217, 119, 6;
+    --error: #dc2626;
+    --error-rgb: 220, 38, 38;
+
+    /* ── Backgrounds — crisp white base ── */
+    --background: #fffdf5; /* warm white, brighter than old #FFF8F0 */
+    --background-rgb: 255, 253, 245;
+    --surface: #ffffff;
+    --surface-rgb: 255, 255, 255;
+    --surface-dim: #f0e8d0; /* lighter warm beige — brighter than old #E1D9CC */
+    --surface-dim-rgb: 240, 232, 208;
+    --dark-surface: #1c1600; /* deep warm black */
+    --dark-surface-rgb: 28, 22, 0;
+
+    /* ── Text — sharper contrast ── */
+    --text-main: #1a1200; /* near-black warm */
+    --text-main-rgb: 26, 18, 0;
+    --text-secondary: #5c4a10; /* warm brown — brighter than old #4D4635 */
+    --text-secondary-rgb: 92, 74, 16;
+
+    /* ── shadcn/ui compat ── */
+    --foreground: var(--text-main);
+    --card: var(--surface);
+    --card-foreground: var(--text-main);
+    --popover: var(--surface);
+    --popover-foreground: var(--text-main);
+    --primary-foreground: #ffffff;
+    --secondary-foreground: #ffffff;
+    --accent-foreground: #ffffff;
+    --destructive: var(--error);
+    --destructive-foreground: #ffffff;
+    --muted: var(--surface-dim);
+    --muted-foreground: var(--text-secondary);
+    --border: var(--surface-dim);
+    --input: var(--surface);
+    --ring: var(--primary-light);
+
+    --radius: 0.75rem;
+
+    /* ── IPL theme aliases ── */
+    --ipl-navy: #1e3a8a;
+    --ipl-gold: var(--primary-light);
+    --ipl-red: var(--error);
+    --ipl-green: #16a34a;
+    --ipl-surface: var(--surface);
+
+    /* ── Sidebar ── */
+    --sidebar-background: var(--surface);
+    --sidebar-foreground: var(--text-main);
+    --sidebar-primary: var(--primary);
+    --sidebar-primary-foreground: #ffffff;
+    --sidebar-accent: var(--accent);
+    --sidebar-accent-foreground: #ffffff;
+    --sidebar-border: var(--surface-dim);
+    --sidebar-ring: var(--primary-light);
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply antialiased bg-background text-foreground font-body;
+    background-image:
+      radial-gradient(
+        circle at 10% 0%,
+        rgba(240, 192, 64, 0.12),
+        transparent 30%
+      ),
+      radial-gradient(
+        circle at 90% 5%,
+        rgba(217, 119, 6, 0.1),
+        transparent 28%
+      ),
+      linear-gradient(180deg, #fffdf5 0%, #fff8e8 100%);
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply font-heading;
+  }
+}
+
+/* ================= UTILITIES ================= */
+@layer utilities {
+  .text-gradient-gold {
+    background: linear-gradient(135deg, #a67c00 0%, #f0c040 50%, #fffdf5 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .bg-gradient-card {
+    background: linear-gradient(
+      145deg,
+      #ffffff 0%,
+      rgba(240, 192, 64, 0.1) 100%
+    );
+  }
+
+  .glow-gold {
+    box-shadow:
+      0 0 14px rgba(240, 192, 64, 0.55),
+      0 0 32px rgba(240, 192, 64, 0.25);
+  }
+
+  /* Card panels — white base with gold border */
+  .gold-panel {
+    @apply border rounded-xl bg-gradient-card;
+    border-color: rgba(166, 124, 0, 0.22);
+    box-shadow:
+      0 4px 20px rgba(28, 22, 0, 0.1),
+      0 1px 4px rgba(28, 22, 0, 0.06);
+  }
+
+  /* Primary button — vivid gold */
+  .gold-button {
+    @apply font-semibold text-white transition rounded-lg;
+    background: linear-gradient(135deg, #a67c00 0%, #f0c040 100%);
+    padding: 10px 22px;
+    box-shadow: 0 4px 16px rgba(166, 124, 0, 0.4);
+    color: #1a1200;
+  }
+  .gold-button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 22px rgba(166, 124, 0, 0.5);
+    filter: brightness(1.06);
+  }
+
+  /* Outline button */
+  .gold-outline-button {
+    @apply font-semibold transition border rounded-lg;
+    border-color: rgba(166, 124, 0, 0.45);
+    color: #a67c00;
+    padding: 9px 22px;
+    background: rgba(240, 192, 64, 0.06);
+  }
+  .gold-outline-button:hover {
+    background: rgba(240, 192, 64, 0.14);
+    border-color: #a67c00;
+  }
+
+  .font-premium {
+    font-family: "Bebas Neue", "Oswald", "Teko", sans-serif;
+    letter-spacing: 0.035em;
+    font-weight: 600;
+  }
+
+  /* Live pulse */
+  @keyframes live-pulse {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.45;
+    }
+  }
+  .live-pulse {
+    animation: live-pulse 1.4s ease-in-out infinite;
+  }
+
+  /* Fade up */
+  @keyframes fade-up {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  .animate-fade-up {
+    animation: fade-up 0.4s ease-out both;
+  }
+
+  /* VS clash */
+  @keyframes vs-clash {
+    0% {
+      opacity: 0;
+      transform: scale(0.5);
+    }
+    50% {
+      opacity: 1;
+      transform: scale(1.3);
+      text-shadow: 0 0 20px rgba(240, 192, 64, 0.9);
+    }
+    100% {
+      transform: scale(1);
+    }
+  }
+  .animate-vs-clash {
+    animation: vs-clash 0.5s ease-out both;
+  }
+
+  @keyframes team-left {
+    from {
+      opacity: 0;
+      transform: translateX(-20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+  @keyframes team-right {
+    from {
+      opacity: 0;
+      transform: translateX(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+  .animate-team-left {
+    animation: team-left 0.4s ease forwards;
+  }
+  .animate-team-right {
+    animation: team-right 0.4s ease forwards;
+  }
+
+  @keyframes float-gentle {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-6px);
+    }
+  }
+  .animate-float-gentle {
+    animation: float-gentle 3s ease-in-out infinite;
+  }
+
+  /* Shimmer */
+  @keyframes shimmer {
+    0% {
+      transform: translateX(-100%);
+    }
+    100% {
+      transform: translateX(100%);
+    }
+  }
+
+  /* Spin */
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+  .spin {
+    animation: spin 0.8s linear infinite;
+  }
+
+  /* ── Spinner Reveal Module ── */
+  .font-fixture {
+    font-family: "Teko", "Oswald", sans-serif;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+  }
+
+  .kinetic-segment {
+    display: inline-flex;
+    align-items: baseline;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .kinetic-char {
+    display: inline-block;
+    opacity: 0;
+    transform: translate3d(0, 24px, 0) scale(0.88) rotate(3deg);
+    animation: kinetic-rise 720ms cubic-bezier(0.2, 0.82, 0.22, 1) forwards;
+    animation-delay: var(--kt-delay, 0ms);
+    will-change: transform, opacity;
+  }
+
+  .kinetic-meta {
+    font-family: "Oswald", "Teko", sans-serif;
+    font-size: 0.68em;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: rgba(var(--text-main-rgb), 0.76);
+  }
+
+  .kinetic-team-home,
+  .kinetic-team-away {
+    font-family: "Oswald", "Teko", sans-serif;
+    font-size: 0.98em;
+    font-weight: 700;
+    letter-spacing: 0.015em;
+    color: rgba(var(--text-main-rgb), 0.76);
+    text-shadow: 0 3px 10px rgba(var(--dark-surface-rgb), 0.14);
+  }
+
+  .kinetic-team-home .kinetic-char {
+    animation-name: kinetic-slam-left;
+  }
+
+  .kinetic-team-away .kinetic-char {
+    animation-name: kinetic-slam-right;
+  }
+
+  .kinetic-vs {
+    font-family: "Oswald", "Teko", sans-serif;
+    font-size: 0.74em;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgb(var(--primary-rgb));
+    text-shadow:
+      0 0 14px rgba(var(--primary-light-rgb), 0.45),
+      0 2px 0 rgba(255, 255, 255, 0.6);
+  }
+
+  .kinetic-vs .kinetic-char {
+    animation-name: kinetic-flash;
+  }
+
+  .matchup-pop-hold {
+    border-radius: 0.4rem;
+    background: linear-gradient(
+      120deg,
+      rgba(255, 255, 255, 0.16),
+      rgba(var(--primary-light-rgb), 0.18)
+    );
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.28),
+      0 6px 18px rgba(var(--dark-surface-rgb), 0.12);
+  }
+
+  .animate-fixture-pop-spotlight {
+    animation: fixture-pop-spotlight 860ms cubic-bezier(0.18, 0.84, 0.24, 1)
+      both;
+  }
+
+  @keyframes kinetic-rise {
+    0% {
+      opacity: 0;
+      transform: translate3d(0, 24px, 0) scale(0.88) rotate(3deg);
+      filter: blur(6px);
+    }
+    60% {
+      opacity: 1;
+      transform: translate3d(0, -4px, 0) scale(1.05) rotate(-1deg);
+      filter: blur(0);
+    }
+    100% {
+      opacity: 1;
+      transform: translate3d(0, 0, 0) scale(1) rotate(0);
+      filter: blur(0);
+    }
+  }
+
+  @keyframes kinetic-slam-left {
+    0% {
+      opacity: 0;
+      transform: translate3d(-28px, 18px, 0) scale(0.82) rotate(-8deg);
+      filter: blur(8px);
+    }
+    62% {
+      opacity: 1;
+      transform: translate3d(4px, -3px, 0) scale(1.08) rotate(1deg);
+      filter: blur(0);
+    }
+    100% {
+      opacity: 1;
+      transform: translate3d(0, 0, 0) scale(1) rotate(0);
+      filter: blur(0);
+    }
+  }
+
+  @keyframes kinetic-slam-right {
+    0% {
+      opacity: 0;
+      transform: translate3d(28px, 18px, 0) scale(0.82) rotate(8deg);
+      filter: blur(8px);
+    }
+    62% {
+      opacity: 1;
+      transform: translate3d(-4px, -3px, 0) scale(1.08) rotate(-1deg);
+      filter: blur(0);
+    }
+    100% {
+      opacity: 1;
+      transform: translate3d(0, 0, 0) scale(1) rotate(0);
+      filter: blur(0);
+    }
+  }
+
+  @keyframes kinetic-flash {
+    0% {
+      opacity: 0;
+      transform: scale(0.3) rotate(-14deg);
+      filter: blur(8px);
+    }
+    45% {
+      opacity: 1;
+      transform: scale(1.28) rotate(6deg);
+      filter: blur(0);
+    }
+    100% {
+      opacity: 1;
+      transform: scale(1) rotate(0);
+      filter: blur(0);
+    }
+  }
+
+  @keyframes fixture-pop-spotlight {
+    0% {
+      opacity: 0;
+      transform: perspective(1000px) rotateX(16deg) scale(0.92);
+      box-shadow:
+        0 0 0 rgba(var(--dark-surface-rgb), 0),
+        inset 0 1px 0 rgba(255, 255, 255, 0);
+    }
+    55% {
+      opacity: 1;
+      transform: perspective(1000px) rotateX(-4deg) scale(1.02);
+      box-shadow:
+        0 18px 34px rgba(var(--dark-surface-rgb), 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.3);
+    }
+    100% {
+      opacity: 1;
+      transform: perspective(1000px) rotateX(0) scale(1);
+      box-shadow:
+        0 10px 24px rgba(var(--dark-surface-rgb), 0.26),
+        inset 0 1px 0 rgba(255, 255, 255, 0.32),
+        inset 0 -10px 20px rgba(var(--dark-surface-rgb), 0.16);
+    }
+  }
+}
+
+/* ================= REDUCE MOTION ================= */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation: none !important;
+  }
+}
+
+/* ================= CRICPRO LIGHT THEME ================= */
+/* These utility classes are used by all CricPro scoring pages */
+
+:root {
+  --border-color: #e2e8f0;
+  --input-color: #f8fafc;
+  --ring-color: #ca8a04;
+  --foreground: #0f172a;
+  --radius: 0.75rem;
+}
+
+@layer components {
+  /* Card — white with subtle shadow */
+  .card {
+    @apply p-5 bg-white border shadow-sm rounded-2xl border-slate-200;
+  }
+
+  /* Primary button — gold */
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5
+           bg-primary-600 text-white text-sm font-semibold
+           hover:bg-primary-700 active:bg-primary-800
+           disabled:opacity-50 disabled:cursor-not-allowed
+           transition-colors;
+  }
+
+  /* Secondary button — outlined */
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5
+           border border-slate-300 bg-white text-slate-700 text-sm font-semibold
+           hover:bg-slate-50 hover:border-slate-400
+           disabled:opacity-50 disabled:cursor-not-allowed
+           transition-colors;
+  }
+
+  /* Input field */
+  .input {
+    @apply w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5
+           text-sm text-slate-900 placeholder-slate-400
+           focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-200
+           disabled:bg-slate-50 disabled:text-slate-400
+           transition-colors;
+  }
+
+  /* Font display */
+  .font-display {
+    font-family: "Oswald", "Teko", sans-serif;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+  }
+  /* ===================================================== */
+  /* PREMIUM GLOW TEXT */
+  /* ===================================================== */
+
+  .premium-glow-text {
+    color: #b4191d;
+
+    -webkit-text-stroke: 1px rgba(238, 226, 198, 0.15);
+
+    text-shadow:
+      0 0 4px rgba(205, 165, 78, 0.35),
+      0 0 10px rgba(205, 165, 78, 0.25),
+      0 0 18px rgba(156, 120, 58, 0.18),
+      0 0 30px rgba(205, 165, 78, 0.12);
+
+    animation: premiumGlow 3.5s ease-in-out infinite;
+  }
+
+  /* ===================================================== */
+  /* SOFT PULSE GLOW */
+  /* ===================================================== */
+
+  @keyframes premiumGlow {
+    0% {
+      text-shadow:
+        0 0 4px rgba(205, 165, 78, 0.35),
+        0 0 10px rgba(205, 165, 78, 0.25),
+        0 0 18px rgba(156, 120, 58, 0.18),
+        0 0 30px rgba(205, 165, 78, 0.12);
+    }
+
+    50% {
+      text-shadow:
+        0 0 6px rgba(238, 226, 198, 0.55),
+        0 0 14px rgba(205, 165, 78, 0.4),
+        0 0 24px rgba(156, 120, 58, 0.3),
+        0 0 38px rgba(205, 165, 78, 0.2);
+    }
+
+    100% {
+      text-shadow:
+        0 0 4px rgba(205, 165, 78, 0.35),
+        0 0 10px rgba(205, 165, 78, 0.25),
+        0 0 18px rgba(156, 120, 58, 0.18),
+        0 0 30px rgba(205, 165, 78, 0.12);
+    }
+  }
+  /* ===================================================== */
+  /* LUXURY GOLD FILL EFFECT */
+  /* ===================================================== */
+
+  .luxury-fill-text {
+    position: relative;
+
+    color: #b4191d;
+
+    /* Main premium gold takeover inside text */
+    background: linear-gradient(
+      145deg,
+      #b4191d 0%,
+      #b4191d 58%,
+      #eee2c6 68%,
+      #cda54e 74%,
+      #9c783a 82%,
+      #b4191d 100%
+    );
+
+    background-size: 220% 220%;
+
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+
+    /* Depth */
+    filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.18))
+      drop-shadow(0 0 10px rgba(205, 165, 78, 0.12));
+
+    animation: luxuryFlow 8s ease-in-out infinite;
+  }
+
+  /* ===================================================== */
+  /* SLOW GOLD SWEEP */
+  /* ===================================================== */
+
+  @keyframes luxuryFlow {
+    0% {
+      background-position: 0% 50%;
+    }
+
+    50% {
+      background-position: 100% 50%;
+    }
+
+    100% {
+      background-position: 0% 50%;
+    }
+  }
+}
+
+/* ── Match Center utilities ──────────────────────────────────────────────── */
+/* These classes are used by the match-center components and must be defined  */
+/* here so Tailwind's JIT engine doesn't purge the dynamic class names.       */
+
+/* Progress bar shimmer */
+@keyframes progress-shimmer {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(200%); }
+}
+.progress-shimmer::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.35), transparent);
+  animation: progress-shimmer 1.8s ease-in-out infinite;
+}
+
+/* Ball pop animation for current-over balls */
+@keyframes ball-pop {
+  0%   { transform: scale(0.6); opacity: 0; }
+  60%  { transform: scale(1.15); opacity: 1; }
+  100% { transform: scale(1);   opacity: 1; }
+}
+.ball-pop {
+  animation: ball-pop 0.28s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
